@@ -83,6 +83,14 @@
         {% if title == "사원 목록" %}
         <div class="action-buttons">
             <a href="{{ url_for('add_employee') }}" class="btn btn-primary">➕ 사원 등록</a>
+            <a href="{{ url_for('download_employees') }}" class="btn btn-success ms-2">⬇️ 엑셀 다운로드</a>
+            <form action="{{ url_for('upload_employees') }}" method="post" enctype="multipart/form-data"
+                style="display:inline-block; margin-left:10px;">
+                <label class="btn btn-info mb-0">
+                    ⬆️ 엑셀 업로드
+                    <input type="file" name="file" accept=".xlsx" style="display:none;" onchange="this.form.submit()">
+                </label>
+            </form>
         </div>
         {% endif %}
 
@@ -106,7 +114,9 @@
                 <thead class="table-light">
                     <tr>
                         {% for col in data.columns %}
+                        {% if not (title == "사원 목록" and loop.index0 == 0 and col == 'employee_id') %}
                         <th>{{ col }}</th>
+                        {% endif %}
                         {% endfor %}
                         {% if title in ["부서 목록", "사원 목록", "프로젝트 목록"] %}
                         <th>관리</th>
@@ -119,6 +129,7 @@
                     {% for row in data.values %}
                     <tr>
                         {% for cell in row %}
+                        {% if not (title == "사원 목록" and loop.index0 == 0) %}
                         <td>
                             {% if data.columns[loop.index0] == 'employees' %}
                             {% if cell %}
@@ -132,6 +143,7 @@
                             {{ cell if cell is not none else '-' }}
                             {% endif %}
                         </td>
+                        {% endif %}
                         {% endfor %}
                         {% if title == "부서 목록" %}
                         <td>

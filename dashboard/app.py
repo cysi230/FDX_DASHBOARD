@@ -6,6 +6,8 @@ from flask import request, redirect, url_for, flash
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import io
+from flask import send_file
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -856,5 +858,59 @@ def add_assignment_to_project(project_id):
         flash(f'인원 추가 중 오류가 발생했습니다: {str(e)}', 'error')
         return redirect(url_for('assignment_detail', project_id=project_id))
 
+@app.route("/employees/download")
+def download_employees():
+    try:
+        df = get_all_employees()
+        if 'employee_id' in df.columns:
+            df = df.drop(columns=['employee_id'])
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Employees")
+        output.seek(0)
+        return send_file(output, as_attachment=True, download_name="employees.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    except Exception as e:
+        flash(f"엑셀 다운로드 중 오류: {str(e)}", "danger")
+        return redirect(url_for("employee_page"))
+
+@app.route("/employees/upload", methods=["POST"])
+def upload_employees():
+    file = request.files.get("file")
+    if not file or file.filename == '':
+        flash("엑셀 파일을 선택해주세요.", "danger")
+        return redirect(url_for("employee_page"))
+    try:
+        df = pd.read_excel(file)
+        required_cols = {"name", "position", "department", "skills"}
+        if not required_cols.issubset(df.columns):
+            flash("엑셀 파일에 필수 컬럼이 없습니다. (name, position, department, skills)", "danger")
+            return redirect(url_for("employee_page"))
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # 기존 사원 정보 모두 삭제
+        cur.execute("DELETE FROM employees")
+        
+        for _, row in df.iterrows():
+            # 부서명으로 department_id 찾기
+            cur.execute("SELECT department_id FROM departments WHERE name = ?", (row["department"],))
+            dept = cur.fetchone()
+            if dept:
+                department_id = dept[0]
+            else:
+                # 부서가 없으면 새로 추가
+                cur.execute("INSERT INTO departments (name) VALUES (?)", (row["department"],))
+                department_id = cur.lastrowid
+            cur.execute(
+                "INSERT INTO employees (name, position, department_id, skills) VALUES (?, ?, ?, ?)",
+                (row["name"], row["position"], department_id, row["skills"])
+            )
+        conn.commit()
+        conn.close()
+        flash("엑셀 업로드 성공! 기존 사원 정보가 새로운 데이터로 덮어쓰여졌습니다.", "success")
+    except Exception as e:
+        flash(f"엑셀 업로드 중 오류: {str(e)}", "danger")
+    return redirect(url_for("employee_page"))
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0')
