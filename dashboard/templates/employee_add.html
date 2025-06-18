@@ -85,12 +85,9 @@
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">기술 (여러개 선택 가능)</label>
-                <select class="form-select" name="skills" multiple size="5">
-                    {% for skill in skills.itertuples() %}
-                    <option value="{{ skill.skill_id }}">{{ skill.name }}</option>
-                    {% endfor %}
-                </select>
+                <label for="skills" class="form-label">기술</label>
+                <input type="text" class="form-control" id="skills" name="skills"
+                    placeholder="예: Python, JavaScript, React, Spring 등 (쉼표로 구분)">
             </div>
             <button type="submit" class="btn btn-primary">등록</button>
             <a href="{{ url_for('employee_page') }}" class="btn btn-secondary">취소</a>

@@ -136,19 +136,6 @@ def get_project_types():
     finally:
         conn.close()
 
-def get_locations():
-    conn = get_connection()
-    if conn is None:
-        return pd.DataFrame()
-    try:
-        df = pd.read_sql_query("SELECT site_id, name FROM locations", conn)
-        return df
-    except Exception as e:
-        print(f"장소 목록 조회 오류: {e}")
-        return pd.DataFrame()
-    finally:
-        conn.close()
-
 def get_available_employees():
     conn = get_connection()
     if conn is None:
@@ -230,43 +217,32 @@ def add_employee():
         name = request.form.get("name", "").strip()
         position = request.form.get("position", "").strip()
         department_id = request.form.get("department_id")
-        skill_ids = request.form.getlist("skills")
+        skills = request.form.get("skills", "").strip()
 
         # 데이터 검증
         if not name:
             flash("이름은 필수 입력 항목입니다.", "danger")
             departments = get_departments()
-            skills = get_skills()
-            return render_template("employee_add.html", departments=departments, skills=skills)
+            return render_template("employee_add.html", departments=departments)
 
         if not department_id:
             flash("부서는 필수 선택 항목입니다.", "danger")
             departments = get_departments()
-            skills = get_skills()
-            return render_template("employee_add.html", departments=departments, skills=skills)
+            return render_template("employee_add.html", departments=departments)
 
         conn = get_connection()
         if conn is None:
             flash("데이터베이스 연결에 실패했습니다.", "danger")
             departments = get_departments()
-            skills = get_skills()
-            return render_template("employee_add.html", departments=departments, skills=skills)
+            return render_template("employee_add.html", departments=departments)
 
         try:
             cur = conn.cursor()
-            # 1) 사원 테이블에 insert
+            # 사원 테이블에 insert (skills 필드 포함)
             cur.execute(
-                "INSERT INTO employees (name, position, department_id) VALUES (?, ?, ?)",
-                (name, position, department_id)
+                "INSERT INTO employees (name, position, department_id, skills) VALUES (?, ?, ?, ?)",
+                (name, position, department_id, skills)
             )
-            employee_id = cur.lastrowid
-
-            # 2) skill_mapping에 insert (기존 매핑 없는 경우)
-            for skill_id in skill_ids:
-                cur.execute(
-                    "INSERT INTO skill_mapping (employee_id, skill_id) VALUES (?, ?)",
-                    (employee_id, skill_id)
-                )
             conn.commit()
             flash(f"사원 '{name}' 등록 성공", "success")
             return redirect(url_for("employee_page"))
@@ -277,10 +253,9 @@ def add_employee():
         finally:
             conn.close()
 
-    # GET 요청: 부서, 기술 목록 받아서 폼 렌더링
+    # GET 요청: 부서 목록 받아서 폼 렌더링
     departments = get_departments()
-    skills = get_skills()
-    return render_template("employee_add.html", departments=departments, skills=skills)
+    return render_template("employee_add.html", departments=departments)
 
 # --- 프로젝트 등록 페이지 ---
 @app.route("/projects/add", methods=["GET", "POST"])
@@ -288,7 +263,7 @@ def add_project():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         type_id = request.form.get("type_id")
-        site_id = request.form.get("site_id")
+        location = request.form.get("location", "").strip()
         start_date = request.form.get("start_date")
         end_date = request.form.get("end_date")
 
@@ -296,20 +271,22 @@ def add_project():
         if not name:
             flash("프로젝트명은 필수 입력 항목입니다.", "danger")
             project_types = get_project_types()
-            locations = get_locations()
-            return render_template("project_add.html", project_types=project_types, locations=locations)
+            return render_template("project_add.html", project_types=project_types)
 
-        if not type_id or not site_id:
-            flash("프로젝트 유형과 장소는 필수 선택 항목입니다.", "danger")
+        if not type_id:
+            flash("프로젝트 유형은 필수 선택 항목입니다.", "danger")
             project_types = get_project_types()
-            locations = get_locations()
-            return render_template("project_add.html", project_types=project_types, locations=locations)
+            return render_template("project_add.html", project_types=project_types)
+
+        if not location:
+            flash("장소는 필수 입력 항목입니다.", "danger")
+            project_types = get_project_types()
+            return render_template("project_add.html", project_types=project_types)
 
         if not start_date or not end_date:
             flash("시작일과 종료일은 필수 입력 항목입니다.", "danger")
             project_types = get_project_types()
-            locations = get_locations()
-            return render_template("project_add.html", project_types=project_types, locations=locations)
+            return render_template("project_add.html", project_types=project_types)
 
         # 날짜 검증
         try:
@@ -318,26 +295,23 @@ def add_project():
             if start_dt >= end_dt:
                 flash("종료일은 시작일보다 늦어야 합니다.", "danger")
                 project_types = get_project_types()
-                locations = get_locations()
-                return render_template("project_add.html", project_types=project_types, locations=locations)
+                return render_template("project_add.html", project_types=project_types)
         except ValueError:
             flash("올바른 날짜 형식을 입력해주세요.", "danger")
             project_types = get_project_types()
-            locations = get_locations()
-            return render_template("project_add.html", project_types=project_types, locations=locations)
+            return render_template("project_add.html", project_types=project_types)
 
         conn = get_connection()
         if conn is None:
             flash("데이터베이스 연결에 실패했습니다.", "danger")
             project_types = get_project_types()
-            locations = get_locations()
-            return render_template("project_add.html", project_types=project_types, locations=locations)
+            return render_template("project_add.html", project_types=project_types)
 
         try:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO projects (name, type_id, site_id, start_date, end_date) VALUES (?, ?, ?, ?, ?)",
-                (name, type_id, site_id, start_date, end_date)
+                "INSERT INTO projects (name, type_id, location, start_date, end_date) VALUES (?, ?, ?, ?, ?)",
+                (name, type_id, location, start_date, end_date)
             )
             conn.commit()
             flash(f"프로젝트 '{name}' 등록 성공", "success")
@@ -349,10 +323,9 @@ def add_project():
         finally:
             conn.close()
 
-    # GET 요청: 프로젝트 유형, 장소 목록 받아서 폼 렌더링
+    # GET 요청: 프로젝트 유형 목록 받아서 폼 렌더링
     project_types = get_project_types()
-    locations = get_locations()
-    return render_template("project_add.html", project_types=project_types, locations=locations)
+    return render_template("project_add.html", project_types=project_types)
 
 # --- 프로젝트 배정 페이지 ---
 @app.route("/assignment/add", methods=["GET", "POST"])

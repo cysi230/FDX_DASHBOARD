@@ -81,13 +81,9 @@
                 </select>
             </div>
             <div class="mb-3">
-                <label for="site_id" class="form-label">장소</label>
-                <select class="form-select" id="site_id" name="site_id" required>
-                    <option value="">선택</option>
-                    {% for loc in locations.itertuples() %}
-                    <option value="{{ loc.site_id }}">{{ loc.name }}</option>
-                    {% endfor %}
-                </select>
+                <label for="location" class="form-label">장소</label>
+                <input type="text" class="form-control" id="location" name="location"
+                    placeholder="예: 서울 본사, 부산 지사, 원격 등" required>
             </div>
             <div class="mb-3">
                 <label for="start_date" class="form-label">시작일</label>

@@ -50,13 +50,7 @@ def get_project_assignment_list():
 def get_all_employees():
     conn = get_connection()
     df = pd.read_sql_query("""
-        SELECT e.employee_id, e.name, e.position, d.name AS department, 
-            (
-                SELECT GROUP_CONCAT(s.name, ', ')
-                FROM skill_mapping sm
-                JOIN skills s ON sm.skill_id = s.skill_id
-                WHERE sm.employee_id = e.employee_id
-            ) AS skills
+        SELECT e.employee_id, e.name, e.position, d.name AS department, e.skills
         FROM employees e
         LEFT JOIN departments d ON e.department_id = d.department_id
         ORDER BY e.employee_id
@@ -67,11 +61,10 @@ def get_all_employees():
 def get_all_projects():
     conn = get_connection()
     df = pd.read_sql_query("""
-        SELECT p.project_id, p.name, pt.type_name AS type, l.name AS site, 
+        SELECT p.project_id, p.name, pt.type_name AS type, p.location AS site, 
                p.start_date, p.end_date
         FROM projects p
         LEFT JOIN project_type pt ON p.type_id = pt.type_id
-        LEFT JOIN locations l ON p.site_id = l.site_id
         ORDER BY p.project_id
     """, conn)
     conn.close()
