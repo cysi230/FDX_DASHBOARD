@@ -92,6 +92,10 @@
                 </label>
             </form>
         </div>
+        <div class="mb-3">
+            <input type="text" class="form-control" id="employeeSearch" placeholder="사원명, 직급, 부서, 기술로 검색..."
+                style="max-width: 400px;">
+        </div>
         {% endif %}
 
         {% if title == "프로젝트 목록" %}
@@ -127,7 +131,8 @@
                 </thead>
                 <tbody>
                     {% for row in data.values %}
-                    <tr>
+                    <tr {% if title=="사원 목록" %}data-search="{{ row[1] }} {{ row[2] }} {{ row[3] }} {{ row[4] }}" {%
+                        endif %}>
                         {% for cell in row %}
                         {% if not (title == "사원 목록" and loop.index0 == 0) %}
                         <td>
@@ -217,6 +222,25 @@
                     }
                 });
             });
+
+            // 사원 목록 검색 기능
+            const employeeSearch = document.getElementById('employeeSearch');
+            if (employeeSearch) {
+                const tableRows = document.querySelectorAll('tbody tr[data-search]');
+
+                employeeSearch.addEventListener('input', function () {
+                    const searchTerm = this.value.toLowerCase();
+
+                    tableRows.forEach(row => {
+                        const searchText = row.getAttribute('data-search').toLowerCase();
+                        if (searchText.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
         });
     </script>
 </body>

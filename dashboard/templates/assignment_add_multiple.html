@@ -122,9 +122,12 @@
 
             <div class="mb-3">
                 <label class="form-label">사원 선택</label>
+                <div class="mb-2">
+                    <input type="text" class="form-control" id="employeeSearch" placeholder="사원명, 직급, 부서로 검색...">
+                </div>
                 <div class="employee-list">
                     {% for emp in employees.itertuples() %}
-                    <div class="employee-item">
+                    <div class="employee-item" data-search="{{ emp.name }} {{ emp.position }} {{ emp.department }}">
                         <input type="checkbox" class="form-check-input me-2" id="emp_{{ emp.employee_id }}"
                             value="{{ emp.employee_id }}" name="employee_ids">
                         <label class="employee-info" for="emp_{{ emp.employee_id }}">
@@ -150,6 +153,22 @@
             const checkboxes = document.querySelectorAll('input[name="employee_ids"]');
             const selectedEmployeesDiv = document.getElementById('selectedEmployees');
             const selectedListDiv = document.getElementById('selectedList');
+            const searchInput = document.getElementById('employeeSearch');
+            const employeeItems = document.querySelectorAll('.employee-item');
+
+            // 검색 기능
+            searchInput.addEventListener('input', function () {
+                const searchTerm = this.value.toLowerCase();
+
+                employeeItems.forEach(item => {
+                    const searchText = item.getAttribute('data-search').toLowerCase();
+                    if (searchText.includes(searchTerm)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
 
             function updateSelectedEmployees() {
                 const selected = Array.from(checkboxes)
