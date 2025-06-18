@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>프로젝트 배정</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #343a40;
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .sidebar a {
+            color: #ffffff;
+            text-decoration: none;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .sidebar a:hover {
+            color: #0dcaf0;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h4>📊 대시보드</h4>
+        <a href="/">전체 요약</a>
+        <a href="/maintenance">🛠 유지보수</a>
+        <a href="/ongoing">⏳ 진행중</a>
+        <a href="/assignment">👥 인원별 보기</a>
+        <a href="/assignment/add">➕ 프로젝트 배정</a>
+        <hr>
+        <h6>관리</h6>
+        <a href="/departments">🏢 부서 관리</a>
+        <a href="/employees">👤 사원 관리</a>
+        <a href="/projects">📁 프로젝트 관리</a>
+    </div>
+
+    <div class="content">
+        <h2>프로젝트 배정</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="container mt-3">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label for="employee_id" class="form-label">사원</label>
+                <select class="form-select" id="employee_id" name="employee_id" required>
+                    <option value="">선택</option>
+                    {% for emp in employees.itertuples() %}
+                    <option value="{{ emp.employee_id }}">{{ emp.name }} ({{ emp.position }}) - {{ emp.department }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="project_id" class="form-label">프로젝트</label>
+                <select class="form-select" id="project_id" name="project_id" required>
+                    <option value="">선택</option>
+                    {% for proj in projects.itertuples() %}
+                    <option value="{{ proj.project_id }}">{{ proj.name }} ({{ proj.type }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">배정</button>
+            <a href="{{ url_for('assignment') }}" class="btn btn-secondary">취소</a>
+        </form>
+    </div>
+</body>
+
+</html>
