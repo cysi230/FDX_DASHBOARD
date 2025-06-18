@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 
 <head>
-    <title>프로젝트 배정 수정</title>
+    <title>배정 수정</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
@@ -32,6 +32,10 @@
             flex-grow: 1;
             padding: 30px;
         }
+
+        .form-container {
+            max-width: 600px;
+        }
     </style>
 </head>
 
@@ -51,10 +55,10 @@
     </div>
 
     <div class="content">
-        <h2>프로젝트 배정 수정</h2>
-
-        <div class="alert alert-info">
-            <strong>💡 배정 수정 안내:</strong> 기존 배정을 다른 사원들로 변경하거나 추가할 수 있습니다. 여러 사원을 선택하면 모두 같은 프로젝트에 배정됩니다.
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>배정 수정</h2>
+            <a href="{{ url_for('assignment_detail', project_id=assignment_info.iloc[0]['project_id']) }}"
+                class="btn btn-secondary">← 상세 화면으로</a>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -70,94 +74,49 @@
         {% endif %}
         {% endwith %}
 
-        <form method="POST">
-            <div class="mb-3">
-                <label for="project_id" class="form-label">프로젝트</label>
-                <select class="form-select" id="project_id" name="project_id" required>
-                    <option value="">선택</option>
-                    {% for proj in projects.itertuples() %}
-                    <option value="{{ proj.project_id }}" {% if proj.project_id==assignment.project_id %}selected{%
-                        endif %}>
-                        {{ proj.name }} ({{ proj.type }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">사원 선택</label>
-                <div class="employee-list"
-                    style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 10px;">
-                    {% for emp in employees.itertuples() %}
-                    <div class="employee-item"
-                        style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #f8f9fa;">
-                        <input type="checkbox" class="form-check-input me-2" id="emp_{{ emp.employee_id }}"
-                            value="{{ emp.employee_id }}" name="employee_ids" {% if
-                            emp.employee_id==assignment.employee_id %}checked{% endif %}>
-                        <label class="employee-info" for="emp_{{ emp.employee_id }}" style="flex-grow: 1;">
-                            <strong>{{ emp.name }}</strong> ({{ emp.position }}) - {{ emp.department }}
-                        </label>
-                    </div>
-                    {% endfor %}
+        <div class="form-container">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="employee_name" class="form-label">사원명</label>
+                    <input type="text" class="form-control" id="employee_name"
+                        value="{{ assignment_info.iloc[0]['employee_name'] }}" readonly>
                 </div>
-            </div>
 
-            <div class="selected-employees" id="selectedEmployees" style="display: none; margin-top: 15px;">
-                <label class="form-label">선택된 사원:</label>
-                <div id="selectedList"></div>
-            </div>
+                <div class="mb-3">
+                    <label for="project_name" class="form-label">프로젝트명</label>
+                    <input type="text" class="form-control" id="project_name"
+                        value="{{ assignment_info.iloc[0]['project_name'] }}" readonly>
+                </div>
 
-            <button type="submit" class="btn btn-primary">수정</button>
-            <a href="{{ url_for('assignment') }}" class="btn btn-secondary">취소</a>
-        </form>
+                <div class="mb-3">
+                    <label for="start_date" class="form-label">배정 시작일</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date"
+                        value="{{ assignment_info.iloc[0]['start_date'] }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="end_date" class="form-label">배정 종료일</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date"
+                        value="{{ assignment_info.iloc[0]['end_date'] }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="role" class="form-label">역할</label>
+                    <input type="text" class="form-control" id="role" name="role"
+                        value="{{ assignment_info.iloc[0]['role'] if assignment_info.iloc[0]['role'] else '' }}"
+                        placeholder="프로젝트에서의 역할을 입력하세요">
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('assignment_detail', project_id=assignment_info.iloc[0]['project_id']) }}"
+                        class="btn btn-secondary me-md-2">취소</a>
+                    <button type="submit" class="btn btn-primary">수정</button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const checkboxes = document.querySelectorAll('input[name="employee_ids"]');
-            const selectedEmployeesDiv = document.getElementById('selectedEmployees');
-            const selectedListDiv = document.getElementById('selectedList');
-
-            function updateSelectedEmployees() {
-                const selected = Array.from(checkboxes)
-                    .filter(cb => cb.checked)
-                    .map(cb => {
-                        const label = document.querySelector(`label[for="emp_${cb.value}"]`);
-                        return {
-                            id: cb.value,
-                            name: label.textContent.trim()
-                        };
-                    });
-
-                if (selected.length > 0) {
-                    selectedListDiv.innerHTML = selected.map(emp =>
-                        `<span class="selected-employee" style="display: inline-block; background-color: #e9ecef; border: 1px solid #dee2e6; border-radius: 20px; padding: 5px 12px; margin: 2px; font-size: 0.875rem;">
-                            ${emp.name}
-                            <span class="remove-employee" onclick="removeEmployee(${emp.id})" style="color: #dc3545; cursor: pointer; margin-left: 8px;">×</span>
-                        </span>`
-                    ).join('');
-                    selectedEmployeesDiv.style.display = 'block';
-                } else {
-                    selectedEmployeesDiv.style.display = 'none';
-                }
-            }
-
-            checkboxes.forEach(cb => {
-                cb.addEventListener('change', updateSelectedEmployees);
-            });
-
-            // 초기 로드 시 선택된 사원 표시
-            updateSelectedEmployees();
-
-            window.removeEmployee = function (employeeId) {
-                const checkbox = document.getElementById(`emp_${employeeId}`);
-                if (checkbox) {
-                    checkbox.checked = false;
-                    updateSelectedEmployees();
-                }
-            };
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

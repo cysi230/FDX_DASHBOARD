@@ -110,6 +110,8 @@
                         {% endfor %}
                         {% if title in ["부서 목록", "사원 목록", "프로젝트 목록"] %}
                         <th>관리</th>
+                        {% elif title == "프로젝트별 인원" %}
+                        <th>상세</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -117,7 +119,19 @@
                     {% for row in data.values %}
                     <tr>
                         {% for cell in row %}
-                        <td>{{ cell }}</td>
+                        <td>
+                            {% if data.columns[loop.index0] == 'employees' %}
+                            {% if cell %}
+                            {% for employee in cell.split(',') %}
+                            <span class="badge bg-primary me-1">{{ employee.strip() }}</span>
+                            {% endfor %}
+                            {% else %}
+                            <span class="text-muted">배정된 사원 없음</span>
+                            {% endif %}
+                            {% else %}
+                            {{ cell if cell is not none else '-' }}
+                            {% endif %}
+                        </td>
                         {% endfor %}
                         {% if title == "부서 목록" %}
                         <td>
@@ -142,10 +156,10 @@
                         </td>
                         {% elif title == "프로젝트별 인원" %}
                         <td>
-                            <a href="{{ url_for('edit_assignment', assignment_id=row[0]) }}"
-                                class="btn btn-sm btn-warning">수정</a>
-                            <button class="btn btn-sm btn-danger delete-btn" data-type="assignment"
-                                data-id="{{ row[0] }}" data-name="{{ row[1] }} - {{ row[2] }}">삭제</button>
+                            <a href="{{ url_for('assignment_detail', project_id=row[0]) }}"
+                                class="btn btn-sm btn-info">상세 보기</a>
+                            <button class="btn btn-sm btn-danger delete-btn" data-type="project" data-id="{{ row[0] }}"
+                                data-name="{{ row[1] }}">프로젝트 삭제</button>
                         </td>
                         {% endif %}
                     </tr>
@@ -181,12 +195,8 @@
                             url = `/employees/${id}/delete`;
                             break;
                         case 'project':
-                            message = `프로젝트 '${name}'을(를) 삭제하시겠습니까?`;
+                            message = `프로젝트 '${name}'을(를) 삭제하시겠습니까?\n\n⚠️ 주의: 이 프로젝트에 배정된 모든 사원의 배정도 함께 삭제됩니다.`;
                             url = `/projects/${id}/delete`;
-                            break;
-                        case 'assignment':
-                            message = `배정 '${name}'을(를) 삭제하시겠습니까?`;
-                            url = `/assignment/${id}/delete`;
                             break;
                     }
 

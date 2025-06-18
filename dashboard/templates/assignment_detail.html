@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <title>{{ project_info.iloc[0]['project_name'] }} - 배정 상세</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #343a40;
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .sidebar a {
+            color: #ffffff;
+            text-decoration: none;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .sidebar a:hover {
+            color: #0dcaf0;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 30px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .project-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .project-info h4 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            width: 120px;
+            color: #6c757d;
+        }
+
+        .info-value {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h4>📊 대시보드</h4>
+        <a href="/">전체 요약</a>
+        <a href="/maintenance">🛠 유지보수</a>
+        <a href="/ongoing">⏳ 진행중</a>
+        <a href="/assignment">👥 인원별 보기</a>
+        <a href="/assignment/add">➕ 프로젝트 배정</a>
+        <hr>
+        <h6>관리</h6>
+        <a href="/departments">🏢 부서 관리</a>
+        <a href="/employees">👤 사원 관리</a>
+        <a href="/projects">📁 프로젝트 관리</a>
+    </div>
+
+    <div class="content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>{{ project_info.iloc[0]['project_name'] }} - 배정 상세</h2>
+            <a href="/assignment" class="btn btn-secondary">← 목록으로</a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-3">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- 프로젝트 정보 -->
+        <div class="project-info">
+            <h4>📋 프로젝트 정보</h4>
+            <div class="info-row">
+                <div class="info-label">프로젝트명:</div>
+                <div class="info-value">{{ project_info.iloc[0]['project_name'] }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">유형:</div>
+                <div class="info-value">{{ project_info.iloc[0]['project_type'] }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">장소:</div>
+                <div class="info-value">{{ project_info.iloc[0]['location'] }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">기간:</div>
+                <div class="info-value">{{ project_info.iloc[0]['start_date'] }} ~ {{ project_info.iloc[0]['end_date']
+                    }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">상태:</div>
+                <div class="info-value">{{ project_info.iloc[0]['status'] }}</div>
+            </div>
+        </div>
+
+        <!-- 배정된 사원 목록 -->
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>👥 배정된 사원 목록</h4>
+                <a href="{{ url_for('add_assignment_to_project', project_id=project_info.iloc[0]['project_id']) }}"
+                    class="btn btn-success">➕ 인원 추가</a>
+            </div>
+            {% if assignments.empty %}
+            <p class="text-muted">배정된 사원이 없습니다.</p>
+            {% else %}
+            <table class="table table-bordered table-striped table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>사원명</th>
+                        <th>직급</th>
+                        <th>부서</th>
+                        <th>기술</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for _, row in assignments.iterrows() %}
+                    <tr>
+                        <td>{{ row['employee_name'] }}</td>
+                        <td>{{ row['position'] }}</td>
+                        <td>{{ row['department'] if row['department'] else '-' }}</td>
+                        <td>{{ row['skills'] if row['skills'] else '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('edit_assignment', assignment_id=row['assignment_id']) }}"
+                                class="btn btn-sm btn-warning">수정</a>
+                            <button class="btn btn-sm btn-danger delete-btn" data-type="assignment"
+                                data-id="{{ row['assignment_id'] }}" data-name="{{ row['employee_name'] }}">삭제</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 삭제 확인 스크립트 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 삭제 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.delete-btn').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const type = this.getAttribute('data-type');
+                    const id = this.getAttribute('data-id');
+                    const name = this.getAttribute('data-name');
+
+                    if (type === 'assignment') {
+                        const message = `사원 '${name}'의 배정을 삭제하시겠습니까?`;
+                        if (confirm(message)) {
+                            window.location.href = `/assignment/${id}/delete`;
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
