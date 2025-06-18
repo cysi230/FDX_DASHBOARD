@@ -108,6 +108,9 @@
                         {% for col in data.columns %}
                         <th>{{ col }}</th>
                         {% endfor %}
+                        {% if title in ["부서 목록", "사원 목록", "프로젝트 목록"] %}
+                        <th>관리</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -116,6 +119,35 @@
                         {% for cell in row %}
                         <td>{{ cell }}</td>
                         {% endfor %}
+                        {% if title == "부서 목록" %}
+                        <td>
+                            <a href="{{ url_for('edit_department', department_id=row[0]) }}"
+                                class="btn btn-sm btn-warning">수정</a>
+                            <button class="btn btn-sm btn-danger delete-btn" data-type="department"
+                                data-id="{{ row[0] }}" data-name="{{ row[1] }}">삭제</button>
+                        </td>
+                        {% elif title == "사원 목록" %}
+                        <td>
+                            <a href="{{ url_for('edit_employee', employee_id=row[0]) }}"
+                                class="btn btn-sm btn-warning">수정</a>
+                            <button class="btn btn-sm btn-danger delete-btn" data-type="employee" data-id="{{ row[0] }}"
+                                data-name="{{ row[1] }}">삭제</button>
+                        </td>
+                        {% elif title == "프로젝트 목록" %}
+                        <td>
+                            <a href="{{ url_for('edit_project', project_id=row[0]) }}"
+                                class="btn btn-sm btn-warning">수정</a>
+                            <button class="btn btn-sm btn-danger delete-btn" data-type="project" data-id="{{ row[0] }}"
+                                data-name="{{ row[1] }}">삭제</button>
+                        </td>
+                        {% elif title == "프로젝트별 인원" %}
+                        <td>
+                            <a href="{{ url_for('edit_assignment', assignment_id=row[0]) }}"
+                                class="btn btn-sm btn-warning">수정</a>
+                            <button class="btn btn-sm btn-danger delete-btn" data-type="assignment"
+                                data-id="{{ row[0] }}" data-name="{{ row[1] }} - {{ row[2] }}">삭제</button>
+                        </td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -125,6 +157,46 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 삭제 확인 스크립트 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 삭제 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.delete-btn').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const type = this.getAttribute('data-type');
+                    const id = this.getAttribute('data-id');
+                    const name = this.getAttribute('data-name');
+
+                    let message = '';
+                    let url = '';
+
+                    switch (type) {
+                        case 'department':
+                            message = `부서 '${name}'을(를) 삭제하시겠습니까?`;
+                            url = `/departments/${id}/delete`;
+                            break;
+                        case 'employee':
+                            message = `사원 '${name}'을(를) 삭제하시겠습니까?`;
+                            url = `/employees/${id}/delete`;
+                            break;
+                        case 'project':
+                            message = `프로젝트 '${name}'을(를) 삭제하시겠습니까?`;
+                            url = `/projects/${id}/delete`;
+                            break;
+                        case 'assignment':
+                            message = `배정 '${name}'을(를) 삭제하시겠습니까?`;
+                            url = `/assignment/${id}/delete`;
+                            break;
+                    }
+
+                    if (confirm(message)) {
+                        window.location.href = url;
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

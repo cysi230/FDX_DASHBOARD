@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>사원 수정</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #343a40;
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .sidebar a {
+            color: #ffffff;
+            text-decoration: none;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .sidebar a:hover {
+            color: #0dcaf0;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h4>📊 대시보드</h4>
+        <a href="/">전체 요약</a>
+        <a href="/maintenance">🛠 유지보수</a>
+        <a href="/ongoing">⏳ 진행중</a>
+        <a href="/assignment">👥 인원별 보기</a>
+        <a href="/assignment/add">➕ 프로젝트 배정</a>
+        <hr>
+        <h6>관리</h6>
+        <a href="/departments">🏢 부서 관리</a>
+        <a href="/employees">👤 사원 관리</a>
+        <a href="/projects">📁 프로젝트 관리</a>
+    </div>
+
+    <div class="content">
+        <h2>사원 수정</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-3">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label for="name" class="form-label">이름</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ employee.name }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="position" class="form-label">직급</label>
+                <input type="text" class="form-control" id="position" name="position" value="{{ employee.position }}">
+            </div>
+            <div class="mb-3">
+                <label for="department_id" class="form-label">부서</label>
+                <select class="form-select" id="department_id" name="department_id" required>
+                    <option value="">선택</option>
+                    {% for dept in departments.itertuples() %}
+                    <option value="{{ dept.department_id }}" {% if dept.department_id==employee.department_id
+                        %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="skills" class="form-label">기술</label>
+                <input type="text" class="form-control" id="skills" name="skills" value="{{ employee.skills }}"
+                    placeholder="예: Python, JavaScript, React, Spring 등 (쉼표로 구분)">
+            </div>
+            <button type="submit" class="btn btn-primary">수정</button>
+            <a href="{{ url_for('employee_page') }}" class="btn btn-secondary">취소</a>
+        </form>
+    </div>
+</body>
+
+</html>

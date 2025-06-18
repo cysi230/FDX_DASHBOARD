@@ -198,17 +198,91 @@ def add_department():
             flash(f"부서 '{name}' 등록 성공", "success")
             return redirect(url_for("department_page"))
         except sqlite3.IntegrityError as e:
-            print(f"부서 등록 중 무결성 오류: {e}")  # 디버깅용
-            flash(f"중복된 부서명입니다: {str(e)}", "danger")
+            print(f"부서 등록 중 중복 오류: {e}")  # 디버깅용
+            flash("이미 존재하는 부서명입니다.", "danger")
         except Exception as e:
-            print(f"부서 등록 중 일반 오류: {e}")  # 디버깅용
+            print(f"부서 등록 중 오류: {e}")  # 디버깅용
             flash(f"부서 등록 중 오류가 발생했습니다: {str(e)}", "danger")
         finally:
             conn.close()
 
-    # GET 요청: 폼 렌더링
-    print("부서 등록 페이지 GET 요청")  # 디버깅용
     return render_template("department_add.html")
+
+# --- 부서 수정 페이지 ---
+@app.route("/departments/<int:department_id>/edit", methods=["GET", "POST"])
+def edit_department(department_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("department_page"))
+
+    try:
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            
+            if not name:
+                flash("부서명은 필수 입력 항목입니다.", "danger")
+                return render_template("department_edit.html", department={"department_id": department_id, "name": name})
+
+            cur = conn.cursor()
+            cur.execute("UPDATE departments SET name = ? WHERE department_id = ?", (name, department_id))
+            conn.commit()
+            flash(f"부서 '{name}' 수정 성공", "success")
+            return redirect(url_for("department_page"))
+        else:
+            cur = conn.cursor()
+            cur.execute("SELECT department_id, name FROM departments WHERE department_id = ?", (department_id,))
+            department = cur.fetchone()
+            
+            if department is None:
+                flash("부서를 찾을 수 없습니다.", "danger")
+                return redirect(url_for("department_page"))
+            
+            return render_template("department_edit.html", department=dict(department))
+    except Exception as e:
+        flash(f"부서 수정 중 오류가 발생했습니다: {str(e)}", "danger")
+        return redirect(url_for("department_page"))
+    finally:
+        conn.close()
+
+# --- 부서 삭제 ---
+@app.route("/departments/<int:department_id>/delete")
+def delete_department(department_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("department_page"))
+
+    try:
+        cur = conn.cursor()
+        
+        # 부서명 조회
+        cur.execute("SELECT name FROM departments WHERE department_id = ?", (department_id,))
+        department = cur.fetchone()
+        
+        if department is None:
+            flash("부서를 찾을 수 없습니다.", "danger")
+            return redirect(url_for("department_page"))
+        
+        # 해당 부서에 속한 사원이 있는지 확인
+        cur.execute("SELECT COUNT(*) FROM employees WHERE department_id = ?", (department_id,))
+        employee_count = cur.fetchone()[0]
+        
+        if employee_count > 0:
+            flash(f"'{department[0]}' 부서에 속한 사원이 {employee_count}명 있어 삭제할 수 없습니다.", "danger")
+            return redirect(url_for("department_page"))
+        
+        # 부서 삭제
+        cur.execute("DELETE FROM departments WHERE department_id = ?", (department_id,))
+        conn.commit()
+        flash(f"부서 '{department[0]}' 삭제 성공", "success")
+        
+    except Exception as e:
+        flash(f"부서 삭제 중 오류가 발생했습니다: {str(e)}", "danger")
+    finally:
+        conn.close()
+    
+    return redirect(url_for("department_page"))
 
 # --- 사원 등록 페이지 ---
 @app.route("/employees/add", methods=["GET", "POST"])
@@ -256,6 +330,97 @@ def add_employee():
     # GET 요청: 부서 목록 받아서 폼 렌더링
     departments = get_departments()
     return render_template("employee_add.html", departments=departments)
+
+# --- 사원 수정 페이지 ---
+@app.route("/employees/<int:employee_id>/edit", methods=["GET", "POST"])
+def edit_employee(employee_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("employee_page"))
+
+    try:
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            position = request.form.get("position", "").strip()
+            department_id = request.form.get("department_id")
+            skills = request.form.get("skills", "").strip()
+            
+            if not name:
+                flash("이름은 필수 입력 항목입니다.", "danger")
+                departments = get_departments()
+                return render_template("employee_edit.html", 
+                                     employee={"employee_id": employee_id, "name": name, "position": position, "department_id": department_id, "skills": skills}, 
+                                     departments=departments)
+
+            if not department_id:
+                flash("부서는 필수 선택 항목입니다.", "danger")
+                departments = get_departments()
+                return render_template("employee_edit.html", 
+                                     employee={"employee_id": employee_id, "name": name, "position": position, "department_id": department_id, "skills": skills}, 
+                                     departments=departments)
+
+            cur = conn.cursor()
+            cur.execute("UPDATE employees SET name = ?, position = ?, department_id = ?, skills = ? WHERE employee_id = ?", 
+                       (name, position, department_id, skills, employee_id))
+            conn.commit()
+            flash(f"사원 '{name}' 수정 성공", "success")
+            return redirect(url_for("employee_page"))
+        else:
+            cur = conn.cursor()
+            cur.execute("SELECT employee_id, name, position, department_id, skills FROM employees WHERE employee_id = ?", (employee_id,))
+            employee = cur.fetchone()
+            
+            if employee is None:
+                flash("사원을 찾을 수 없습니다.", "danger")
+                return redirect(url_for("employee_page"))
+            
+            departments = get_departments()
+            return render_template("employee_edit.html", employee=dict(employee), departments=departments)
+    except Exception as e:
+        flash(f"사원 수정 중 오류가 발생했습니다: {str(e)}", "danger")
+        return redirect(url_for("employee_page"))
+    finally:
+        conn.close()
+
+# --- 사원 삭제 ---
+@app.route("/employees/<int:employee_id>/delete")
+def delete_employee(employee_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("employee_page"))
+
+    try:
+        cur = conn.cursor()
+        
+        # 사원명 조회
+        cur.execute("SELECT name FROM employees WHERE employee_id = ?", (employee_id,))
+        employee = cur.fetchone()
+        
+        if employee is None:
+            flash("사원을 찾을 수 없습니다.", "danger")
+            return redirect(url_for("employee_page"))
+        
+        # 해당 사원이 프로젝트에 배정되어 있는지 확인
+        cur.execute("SELECT COUNT(*) FROM assignment WHERE employee_id = ?", (employee_id,))
+        assignment_count = cur.fetchone()[0]
+        
+        if assignment_count > 0:
+            flash(f"'{employee[0]}' 사원이 {assignment_count}개의 프로젝트에 배정되어 있어 삭제할 수 없습니다.", "danger")
+            return redirect(url_for("employee_page"))
+        
+        # 사원 삭제
+        cur.execute("DELETE FROM employees WHERE employee_id = ?", (employee_id,))
+        conn.commit()
+        flash(f"사원 '{employee[0]}' 삭제 성공", "success")
+        
+    except Exception as e:
+        flash(f"사원 삭제 중 오류가 발생했습니다: {str(e)}", "danger")
+    finally:
+        conn.close()
+    
+    return redirect(url_for("employee_page"))
 
 # --- 프로젝트 등록 페이지 ---
 @app.route("/projects/add", methods=["GET", "POST"])
@@ -327,58 +492,327 @@ def add_project():
     project_types = get_project_types()
     return render_template("project_add.html", project_types=project_types)
 
+# --- 프로젝트 수정 페이지 ---
+@app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])
+def edit_project(project_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("project_page"))
+
+    try:
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            type_name = request.form.get("type", "").strip()
+            location = request.form.get("location", "").strip()
+            start_date = request.form.get("start_date")
+            end_date = request.form.get("end_date")
+            status = request.form.get("status", "").strip()
+            
+            if not name:
+                flash("프로젝트명은 필수 입력 항목입니다.", "danger")
+                return render_template("project_edit.html", 
+                                     project={"project_id": project_id, "name": name, "type": type_name, "location": location, "start_date": start_date, "end_date": end_date, "status": status})
+
+            if not type_name:
+                flash("프로젝트 유형은 필수 선택 항목입니다.", "danger")
+                return render_template("project_edit.html", 
+                                     project={"project_id": project_id, "name": name, "type": type_name, "location": location, "start_date": start_date, "end_date": end_date, "status": status})
+
+            if not location:
+                flash("장소는 필수 입력 항목입니다.", "danger")
+                return render_template("project_edit.html", 
+                                     project={"project_id": project_id, "name": name, "type": type_name, "location": location, "start_date": start_date, "end_date": end_date, "status": status})
+
+            if not start_date or not end_date:
+                flash("시작일과 종료일은 필수 입력 항목입니다.", "danger")
+                return render_template("project_edit.html", 
+                                     project={"project_id": project_id, "name": name, "type": type_name, "location": location, "start_date": start_date, "end_date": end_date, "status": status})
+
+            # 날짜 검증
+            try:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                if start_dt >= end_dt:
+                    flash("종료일은 시작일보다 늦어야 합니다.", "danger")
+                    return render_template("project_edit.html", 
+                                         project={"project_id": project_id, "name": name, "type": type_name, "location": location, "start_date": start_date, "end_date": end_date, "status": status})
+            except ValueError:
+                flash("올바른 날짜 형식을 입력해주세요.", "danger")
+                return render_template("project_edit.html", 
+                                     project={"project_id": project_id, "name": name, "type": type_name, "location": location, "start_date": start_date, "end_date": end_date, "status": status})
+
+            # 유형 ID 조회
+            cur = conn.cursor()
+            cur.execute("SELECT type_id FROM project_type WHERE type_name = ?", (type_name,))
+            type_result = cur.fetchone()
+            
+            if type_result is None:
+                flash("유효하지 않은 프로젝트 유형입니다.", "danger")
+                return render_template("project_edit.html", 
+                                     project={"project_id": project_id, "name": name, "type": type_name, "location": location, "start_date": start_date, "end_date": end_date, "status": status})
+            
+            type_id = type_result[0]
+            
+            # 프로젝트 업데이트
+            cur.execute("UPDATE projects SET name = ?, type_id = ?, location = ?, start_date = ?, end_date = ?, status = ? WHERE project_id = ?", 
+                       (name, type_id, location, start_date, end_date, status, project_id))
+            conn.commit()
+            flash(f"프로젝트 '{name}' 수정 성공", "success")
+            return redirect(url_for("project_page"))
+        else:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT p.project_id, p.name, pt.type_name as type, p.location, p.start_date, p.end_date, p.status 
+                FROM projects p
+                LEFT JOIN project_type pt ON p.type_id = pt.type_id
+                WHERE p.project_id = ?
+            """, (project_id,))
+            project = cur.fetchone()
+            
+            if project is None:
+                flash("프로젝트를 찾을 수 없습니다.", "danger")
+                return redirect(url_for("project_page"))
+            
+            return render_template("project_edit.html", project=dict(project))
+    except Exception as e:
+        flash(f"프로젝트 수정 중 오류가 발생했습니다: {str(e)}", "danger")
+        return redirect(url_for("project_page"))
+    finally:
+        conn.close()
+
+# --- 프로젝트 삭제 ---
+@app.route("/projects/<int:project_id>/delete")
+def delete_project(project_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("project_page"))
+
+    try:
+        cur = conn.cursor()
+        
+        # 프로젝트명 조회
+        cur.execute("SELECT name FROM projects WHERE project_id = ?", (project_id,))
+        project = cur.fetchone()
+        
+        if project is None:
+            flash("프로젝트를 찾을 수 없습니다.", "danger")
+            return redirect(url_for("project_page"))
+        
+        # 해당 프로젝트에 배정된 사원이 있는지 확인
+        cur.execute("SELECT COUNT(*) FROM assignment WHERE project_id = ?", (project_id,))
+        assignment_count = cur.fetchone()[0]
+        
+        if assignment_count > 0:
+            flash(f"'{project[0]}' 프로젝트에 {assignment_count}명의 사원이 배정되어 있어 삭제할 수 없습니다.", "danger")
+            return redirect(url_for("project_page"))
+        
+        # 프로젝트 삭제
+        cur.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+        conn.commit()
+        flash(f"프로젝트 '{project[0]}' 삭제 성공", "success")
+        
+    except Exception as e:
+        flash(f"프로젝트 삭제 중 오류가 발생했습니다: {str(e)}", "danger")
+    finally:
+        conn.close()
+    
+    return redirect(url_for("project_page"))
+
 # --- 프로젝트 배정 페이지 ---
 @app.route("/assignment/add", methods=["GET", "POST"])
 def add_assignment():
     if request.method == "POST":
-        employee_id = request.form.get("employee_id")
         project_id = request.form.get("project_id")
+        employee_ids = request.form.getlist("employee_ids")
 
         # 데이터 검증
-        if not employee_id or not project_id:
-            flash("사원과 프로젝트는 필수 선택 항목입니다.", "danger")
+        if not project_id:
+            flash("프로젝트는 필수 선택 항목입니다.", "danger")
             employees = get_available_employees()
             projects = get_available_projects()
-            return render_template("assignment_add.html", employees=employees, projects=projects)
+            return render_template("assignment_add_multiple.html", employees=employees, projects=projects)
+
+        if not employee_ids:
+            flash("최소 한 명의 사원을 선택해야 합니다.", "danger")
+            employees = get_available_employees()
+            projects = get_available_projects()
+            return render_template("assignment_add_multiple.html", employees=employees, projects=projects)
 
         conn = get_connection()
         if conn is None:
             flash("데이터베이스 연결에 실패했습니다.", "danger")
             employees = get_available_employees()
             projects = get_available_projects()
-            return render_template("assignment_add.html", employees=employees, projects=projects)
+            return render_template("assignment_add_multiple.html", employees=employees, projects=projects)
 
         try:
             cur = conn.cursor()
-            # 중복 배정 확인
-            cur.execute(
-                "SELECT COUNT(*) FROM assignment WHERE employee_id = ? AND project_id = ?",
-                (employee_id, project_id)
-            )
-            if cur.fetchone()[0] > 0:
-                flash("이미 배정된 사원-프로젝트 조합입니다.", "danger")
-                employees = get_available_employees()
-                projects = get_available_projects()
-                return render_template("assignment_add.html", employees=employees, projects=projects)
-
-            cur.execute(
-                "INSERT INTO assignment (employee_id, project_id) VALUES (?, ?)",
-                (employee_id, project_id)
-            )
+            success_count = 0
+            error_count = 0
+            
+            for employee_id in employee_ids:
+                # 중복 배정 확인
+                cur.execute(
+                    "SELECT COUNT(*) FROM assignment WHERE employee_id = ? AND project_id = ?",
+                    (employee_id, project_id)
+                )
+                if cur.fetchone()[0] > 0:
+                    error_count += 1
+                    continue
+                
+                # 배정 추가
+                cur.execute(
+                    "INSERT INTO assignment (employee_id, project_id) VALUES (?, ?)",
+                    (employee_id, project_id)
+                )
+                success_count += 1
+            
             conn.commit()
-            flash("프로젝트 배정 성공", "success")
+            
+            if success_count > 0:
+                flash(f"{success_count}명의 사원 배정 성공", "success")
+            if error_count > 0:
+                flash(f"{error_count}명의 사원은 이미 배정되어 있습니다.", "warning")
+            
             return redirect(url_for("assignment"))
-        except sqlite3.IntegrityError as e:
-            flash(f"데이터 무결성 오류: {str(e)}", "danger")
+            
         except Exception as e:
-            flash(f"프로젝트 배정 중 오류가 발생했습니다: {str(e)}", "danger")
+            flash(f"다중 배정 중 오류가 발생했습니다: {str(e)}", "danger")
         finally:
             conn.close()
 
     # GET 요청: 사원, 프로젝트 목록 받아서 폼 렌더링
     employees = get_available_employees()
     projects = get_available_projects()
-    return render_template("assignment_add.html", employees=employees, projects=projects)
+    return render_template("assignment_add_multiple.html", employees=employees, projects=projects)
+
+# --- 프로젝트 배정 수정 페이지 ---
+@app.route("/assignment/<int:assignment_id>/edit", methods=["GET", "POST"])
+def edit_assignment(assignment_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("assignment"))
+
+    try:
+        if request.method == "POST":
+            project_id = request.form.get("project_id")
+            employee_ids = request.form.getlist("employee_ids")
+
+            if not project_id:
+                flash("프로젝트는 필수 선택 항목입니다.", "danger")
+                employees = get_available_employees()
+                projects = get_available_projects()
+                return render_template("assignment_edit.html", 
+                                     assignment={"assignment_id": assignment_id, "project_id": project_id}, 
+                                     employees=employees, projects=projects)
+
+            if not employee_ids:
+                flash("최소 한 명의 사원을 선택해야 합니다.", "danger")
+                employees = get_available_employees()
+                projects = get_available_projects()
+                return render_template("assignment_edit.html", 
+                                     assignment={"assignment_id": assignment_id, "project_id": project_id}, 
+                                     employees=employees, projects=projects)
+
+            cur = conn.cursor()
+            
+            # 기존 배정 정보 조회
+            cur.execute("SELECT employee_id, project_id FROM assignment WHERE assignment_id = ?", (assignment_id,))
+            original_assignment = cur.fetchone()
+            
+            if original_assignment is None:
+                flash("배정을 찾을 수 없습니다.", "danger")
+                return redirect(url_for("assignment"))
+            
+            success_count = 0
+            error_count = 0
+            
+            # 기존 배정 삭제
+            cur.execute("DELETE FROM assignment WHERE assignment_id = ?", (assignment_id,))
+            
+            # 새로운 배정들 추가
+            for employee_id in employee_ids:
+                # 중복 배정 확인
+                cur.execute(
+                    "SELECT COUNT(*) FROM assignment WHERE employee_id = ? AND project_id = ?",
+                    (employee_id, project_id)
+                )
+                if cur.fetchone()[0] > 0:
+                    error_count += 1
+                    continue
+                
+                # 배정 추가
+                cur.execute(
+                    "INSERT INTO assignment (employee_id, project_id) VALUES (?, ?)",
+                    (employee_id, project_id)
+                )
+                success_count += 1
+            
+            conn.commit()
+            
+            if success_count > 0:
+                flash(f"배정 수정 성공: {success_count}명의 사원이 배정되었습니다.", "success")
+            if error_count > 0:
+                flash(f"{error_count}명의 사원은 이미 배정되어 있습니다.", "warning")
+            
+            return redirect(url_for("assignment"))
+        else:
+            cur = conn.cursor()
+            cur.execute("SELECT assignment_id, employee_id, project_id FROM assignment WHERE assignment_id = ?", (assignment_id,))
+            assignment = cur.fetchone()
+            
+            if assignment is None:
+                flash("배정을 찾을 수 없습니다.", "danger")
+                return redirect(url_for("assignment"))
+            
+            employees = get_available_employees()
+            projects = get_available_projects()
+            return render_template("assignment_edit.html", assignment=dict(assignment), employees=employees, projects=projects)
+    except Exception as e:
+        flash(f"배정 수정 중 오류가 발생했습니다: {str(e)}", "danger")
+        return redirect(url_for("assignment"))
+    finally:
+        conn.close()
+
+# --- 프로젝트 배정 삭제 ---
+@app.route("/assignment/<int:assignment_id>/delete")
+def delete_assignment(assignment_id):
+    conn = get_connection()
+    if conn is None:
+        flash("데이터베이스 연결에 실패했습니다.", "danger")
+        return redirect(url_for("assignment"))
+
+    try:
+        cur = conn.cursor()
+        
+        # 배정 정보 조회
+        cur.execute("""
+            SELECT e.name, p.name 
+            FROM assignment a
+            JOIN employees e ON a.employee_id = e.employee_id
+            JOIN projects p ON a.project_id = p.project_id
+            WHERE a.assignment_id = ?
+        """, (assignment_id,))
+        assignment = cur.fetchone()
+        
+        if assignment is None:
+            flash("배정을 찾을 수 없습니다.", "danger")
+            return redirect(url_for("assignment"))
+        
+        # 배정 삭제
+        cur.execute("DELETE FROM assignment WHERE assignment_id = ?", (assignment_id,))
+        conn.commit()
+        flash(f"배정 '{assignment[0]} - {assignment[1]}' 삭제 성공", "success")
+        
+    except Exception as e:
+        flash(f"배정 삭제 중 오류가 발생했습니다: {str(e)}", "danger")
+    finally:
+        conn.close()
+    
+    return redirect(url_for("assignment"))
 
 if __name__ == "__main__":
     app.run(debug=True)

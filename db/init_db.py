@@ -56,6 +56,7 @@ def init_db():
         location TEXT,
         start_date TEXT,
         end_date TEXT,
+        status TEXT DEFAULT '대기',
         FOREIGN KEY (type_id) REFERENCES project_type(type_id)
     );
     """)

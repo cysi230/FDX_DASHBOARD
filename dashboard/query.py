@@ -40,8 +40,9 @@ def get_ongoing_projects():
 def get_project_assignment_list():
     conn = get_connection()
     df = pd.read_sql_query("""
-        SELECT project_name, employee_name, position, skills
-        FROM vw_dashboard_summary
+        SELECT a.assignment_id, project_name, employee_name, position, skills
+        FROM vw_dashboard_summary vw
+        JOIN assignment a ON vw.employee_id = a.employee_id AND vw.project_id = a.project_id
         ORDER BY project_name, employee_name
     """, conn)
     conn.close()
@@ -62,7 +63,7 @@ def get_all_projects():
     conn = get_connection()
     df = pd.read_sql_query("""
         SELECT p.project_id, p.name, pt.type_name AS type, p.location AS site, 
-               p.start_date, p.end_date
+               p.start_date, p.end_date, p.status
         FROM projects p
         LEFT JOIN project_type pt ON p.type_id = pt.type_id
         ORDER BY p.project_id
