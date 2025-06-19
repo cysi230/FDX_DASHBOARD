@@ -15,6 +15,79 @@
             min-height: 100vh;
             padding: 20px;
             color: white;
+            transition: width 0.3s;
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            padding: 0;
+        }
+
+        .sidebar.collapsed * {
+            display: none !important;
+        }
+
+        .sidebar.collapsed h4 {
+            display: none !important;
+        }
+
+        .sidebar.collapsed hr {
+            display: none !important;
+        }
+
+        .sidebar.collapsed h6 {
+            display: none !important;
+        }
+
+        .sidebar.collapsed a {
+            display: none !important;
+        }
+
+        .sidebar.collapsed {
+            border: none;
+        }
+
+        .sidebar-toggle-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: #343a40;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            width: 40px;
+            height: 40px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 30px;
+            transition: margin-left 0.3s;
+        }
+
+        .sidebar.collapsed+.content {
+            margin-left: 0 !important;
+        }
+
+        @media (max-width: 800px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 1000;
+            }
+
+            .content {
+                margin-left: 0;
+            }
         }
 
         .sidebar a {
@@ -28,11 +101,6 @@
             color: #0dcaf0;
         }
 
-        .content {
-            flex-grow: 1;
-            padding: 30px;
-        }
-
         .table-container {
             overflow-x: auto;
         }
@@ -44,7 +112,8 @@
 </head>
 
 <body>
-    <div class="sidebar">
+    <button class="sidebar-toggle-btn" id="sidebarToggle">≡</button>
+    <div class="sidebar" id="sidebar">
         <h4>📊 대시보드</h4>
         <a href="/">전체 요약</a>
         <a href="/maintenance">🛠 유지보수</a>
@@ -345,6 +414,13 @@
                     });
                 });
             }
+
+            // 사이드바 토글
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            sidebarToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('collapsed');
+            });
         });
     </script>
 </body>
