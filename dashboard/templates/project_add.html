@@ -93,6 +93,13 @@
                 <label for="end_date" class="form-label">종료일</label>
                 <input type="date" class="form-control" id="end_date" name="end_date" required>
             </div>
+            <div class="mb-3">
+                <label for="status" class="form-label">상태</label>
+                <select class="form-select" id="status" name="status" required>
+                    <option value="대기" selected>대기</option>
+                    <option value="진행중">진행중</option>
+                </select>
+            </div>
             <button type="submit" class="btn btn-primary">등록</button>
             <a href="{{ url_for('project_page') }}" class="btn btn-secondary">취소</a>
         </form>

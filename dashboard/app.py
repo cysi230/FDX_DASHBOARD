@@ -439,6 +439,7 @@ def add_project():
         location = request.form.get("location", "").strip()
         start_date = request.form.get("start_date")
         end_date = request.form.get("end_date")
+        status = request.form.get("status", "대기")
 
         # 데이터 검증
         if not name:
@@ -483,8 +484,8 @@ def add_project():
         try:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO projects (name, type_id, location, start_date, end_date) VALUES (?, ?, ?, ?, ?)",
-                (name, type_id, location, start_date, end_date)
+                "INSERT INTO projects (name, type_id, location, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?)",
+                (name, type_id, location, start_date, end_date, status)
             )
             conn.commit()
             flash(f"프로젝트 '{name}' 등록 성공", "success")

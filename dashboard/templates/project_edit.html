@@ -99,7 +99,6 @@
                 <select class="form-select" id="status" name="status" required>
                     <option value="">선택</option>
                     <option value="진행중" {% if project.status=="진행중" %}selected{% endif %}>진행중</option>
-                    <option value="완료" {% if project.status=="완료" %}selected{% endif %}>완료</option>
                     <option value="대기" {% if project.status=="대기" %}selected{% endif %}>대기</option>
                 </select>
             </div>

@@ -113,6 +113,103 @@
         {% if data.empty %}
         <p class="text-muted">데이터가 없습니다.</p>
         {% else %}
+        {% if title == "전체 프로젝트 요약" %}
+        <!-- 진행중인 프로젝트 -->
+        <div class="mb-4">
+            <h4 class="text-primary mb-3">🔄 진행중인 프로젝트</h4>
+            <div class="table-container">
+                <table class="table table-bordered table-striped table-sm">
+                    <thead class="table-primary">
+                        <tr>
+                            {% for col in data.columns %}
+                            {% if col != 'employee_id' %}
+                            <th>{{ col }}</th>
+                            {% endif %}
+                            {% endfor %}
+                            <th>상세</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data.values %}
+                        {% if row[6] == '진행중' %}
+                        <tr>
+                            {% for cell in row %}
+                            {% if loop.index0 != 0 %}
+                            <td>
+                                {% if data.columns[loop.index0] == 'employees' %}
+                                {% if cell %}
+                                {% for employee in cell.split(',') %}
+                                <span class="badge bg-primary me-1">{{ employee.strip() }}</span>
+                                {% endfor %}
+                                {% else %}
+                                <span class="text-muted">배정된 사원 없음</span>
+                                {% endif %}
+                                {% else %}
+                                {{ cell if cell is not none else '-' }}
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            {% endfor %}
+                            <td>
+                                <a href="{{ url_for('assignment_detail', project_id=row[0]) }}"
+                                    class="btn btn-sm btn-info">상세 보기</a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 예상 프로젝트 -->
+        <div class="mb-4">
+            <h4 class="text-warning mb-3">📅 예상 프로젝트</h4>
+            <div class="table-container">
+                <table class="table table-bordered table-striped table-sm">
+                    <thead class="table-warning">
+                        <tr>
+                            {% for col in data.columns %}
+                            {% if col != 'employee_id' %}
+                            <th>{{ col }}</th>
+                            {% endif %}
+                            {% endfor %}
+                            <th>상세</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data.values %}
+                        {% if row[6] == '예상' or row[6] == '대기' %}
+                        <tr>
+                            {% for cell in row %}
+                            {% if loop.index0 != 0 %}
+                            <td>
+                                {% if data.columns[loop.index0] == 'employees' %}
+                                {% if cell %}
+                                {% for employee in cell.split(',') %}
+                                <span class="badge bg-primary me-1">{{ employee.strip() }}</span>
+                                {% endfor %}
+                                {% else %}
+                                <span class="text-muted">배정된 사원 없음</span>
+                                {% endif %}
+                                {% else %}
+                                {{ cell if cell is not none else '-' }}
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            {% endfor %}
+                            <td>
+                                <a href="{{ url_for('assignment_detail', project_id=row[0]) }}"
+                                    class="btn btn-sm btn-info">상세 보기</a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
         <div class="table-container mt-4">
             <table class="table table-bordered table-striped table-sm">
                 <thead class="table-light">
@@ -184,6 +281,7 @@
                 </tbody>
             </table>
         </div>
+        {% endif %}
         {% endif %}
     </div>
 
