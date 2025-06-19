@@ -114,44 +114,54 @@
         <p class="text-muted">데이터가 없습니다.</p>
         {% else %}
         {% if title == "전체 프로젝트 요약" %}
-        <!-- 진행중인 프로젝트 -->
+        {% set col_order = ['project_name', 'project_type', 'site_name', 'start_date', 'end_date', 'status',
+        'employees'] %}
+        {% set col_map = {
+        'project_name': '프로젝트명',
+        'project_type': '유형',
+        'site_name': '장소',
+        'start_date': '시작일',
+        'end_date': '종료일',
+        'status': '상태',
+        'employees': '배정 사원'
+        } %}
+
+        <!-- 예상 프로젝트 -->
         <div class="mb-4">
-            <h4 class="text-primary mb-3">🔄 진행중인 프로젝트</h4>
+            <h4 class="text-warning mb-3">📅 예상 프로젝트</h4>
             <div class="table-container">
                 <table class="table table-bordered table-striped table-sm">
-                    <thead class="table-primary">
+                    <thead class="table-warning">
                         <tr>
-                            {% for col in data.columns %}
-                            {% if col != 'employee_id' %}
-                            <th>{{ col }}</th>
-                            {% endif %}
+                            {% for col in col_order %}
+                            <th>{{ col_map.get(col, col) }}</th>
                             {% endfor %}
                             <th>상세</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in data.values %}
-                        {% if row[6] == '진행중' %}
+                        {% if row[data.columns.get_loc('status')] == '예상' or row[data.columns.get_loc('status')] == '대기'
+                        %}
                         <tr>
-                            {% for cell in row %}
-                            {% if loop.index0 != 0 %}
+                            {% for col in col_order %}
                             <td>
-                                {% if data.columns[loop.index0] == 'employees' %}
-                                {% if cell %}
-                                {% for employee in cell.split(',') %}
+                                {% set idx = data.columns.get_loc(col) %}
+                                {% if col == 'employees' %}
+                                {% if row[idx] %}
+                                {% for employee in row[idx].split(',') %}
                                 <span class="badge bg-primary me-1">{{ employee.strip() }}</span>
                                 {% endfor %}
                                 {% else %}
                                 <span class="text-muted">배정된 사원 없음</span>
                                 {% endif %}
                                 {% else %}
-                                {{ cell if cell is not none else '-' }}
+                                {{ row[idx] if row[idx] is not none else '-' }}
                                 {% endif %}
                             </td>
-                            {% endif %}
                             {% endfor %}
                             <td>
-                                <a href="{{ url_for('assignment_detail', project_id=row[0]) }}"
+                                <a href="{{ url_for('assignment_detail', project_id=row[data.columns.get_loc('project_id')] ) }}"
                                     class="btn btn-sm btn-info">상세 보기</a>
                             </td>
                         </tr>
@@ -161,45 +171,41 @@
                 </table>
             </div>
         </div>
-
-        <!-- 예상 프로젝트 -->
+        <!-- 진행중인 프로젝트 -->
         <div class="mb-4">
-            <h4 class="text-warning mb-3">📅 예상 프로젝트</h4>
+            <h4 class="text-primary mb-3">🔄 진행중인 프로젝트</h4>
             <div class="table-container">
                 <table class="table table-bordered table-striped table-sm">
-                    <thead class="table-warning">
+                    <thead class="table-primary">
                         <tr>
-                            {% for col in data.columns %}
-                            {% if col != 'employee_id' %}
-                            <th>{{ col }}</th>
-                            {% endif %}
+                            {% for col in col_order %}
+                            <th>{{ col_map.get(col, col) }}</th>
                             {% endfor %}
                             <th>상세</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in data.values %}
-                        {% if row[6] == '예상' or row[6] == '대기' %}
+                        {% if row[data.columns.get_loc('status')] == '진행중' %}
                         <tr>
-                            {% for cell in row %}
-                            {% if loop.index0 != 0 %}
+                            {% for col in col_order %}
                             <td>
-                                {% if data.columns[loop.index0] == 'employees' %}
-                                {% if cell %}
-                                {% for employee in cell.split(',') %}
+                                {% set idx = data.columns.get_loc(col) %}
+                                {% if col == 'employees' %}
+                                {% if row[idx] %}
+                                {% for employee in row[idx].split(',') %}
                                 <span class="badge bg-primary me-1">{{ employee.strip() }}</span>
                                 {% endfor %}
                                 {% else %}
                                 <span class="text-muted">배정된 사원 없음</span>
                                 {% endif %}
                                 {% else %}
-                                {{ cell if cell is not none else '-' }}
+                                {{ row[idx] if row[idx] is not none else '-' }}
                                 {% endif %}
                             </td>
-                            {% endif %}
                             {% endfor %}
                             <td>
-                                <a href="{{ url_for('assignment_detail', project_id=row[0]) }}"
+                                <a href="{{ url_for('assignment_detail', project_id=row[data.columns.get_loc('project_id')] ) }}"
                                     class="btn btn-sm btn-info">상세 보기</a>
                             </td>
                         </tr>
@@ -216,7 +222,7 @@
                     <tr>
                         {% for col in data.columns %}
                         {% if not (title == "사원 목록" and loop.index0 == 0 and col == 'employee_id') %}
-                        <th>{{ col }}</th>
+                        <th>{% if col_map is defined %}{{ col_map.get(col, col) }}{% else %}{{ col }}{% endif %}</th>
                         {% endif %}
                         {% endfor %}
                         {% if title in ["부서 목록", "사원 목록", "프로젝트 목록"] %}
